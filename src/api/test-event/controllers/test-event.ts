@@ -55,7 +55,7 @@ export default factories.createCoreController(TEST_EVENT_UID, ({ strapi }) => ({
         )].sort((a, b) => a - b);
 
         ctx.body = { months };
-    }
+    },
 
     async upcomingYears(ctx) {
         const now = new Date().toISOString();
