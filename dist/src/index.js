@@ -1,20 +1,15 @@
 "use strict";
-// import type { Core } from '@strapi/strapi';
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+const strapi_server_1 = __importDefault(require("./plugins/upload/strapi-server"));
 exports.default = {
-    /**
-     * An asynchronous register function that runs before
-     * your application is initialized.
-     *
-     * This gives you an opportunity to extend code.
-     */
-    register( /* { strapi }: { strapi: Core.Strapi } */) { },
-    /**
-     * An asynchronous bootstrap function that runs before
-     * your application gets started.
-     *
-     * This gives you an opportunity to set up your data model,
-     * run jobs, or perform some special logic.
-     */
-    bootstrap( /* { strapi }: { strapi: Core.Strapi } */) { },
+    register({ strapi }) {
+        const upload = strapi.plugin("upload");
+        if (upload) {
+            (0, strapi_server_1.default)(upload);
+        }
+    },
+    bootstrap() { },
 };

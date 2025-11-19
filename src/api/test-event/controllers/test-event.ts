@@ -1,154 +1,78 @@
 import { factories } from "@strapi/strapi";
+import type { UID } from "@strapi/types";
 
-export default factories.createCoreController(
-    "api::test-event.test-event",
-    ({ strapi }) => ({
+const TEST_EVENT_UID: UID.ContentType = "api::test-event.test-event";
 
-        // --------------------------
-        // GET YEARS (TRANSLATION AWARE)
-        // --------------------------
-        async getYears(ctx) {
-            try {
-                const locale = ctx.query.locale || "en";
+export default factories.createCoreController(TEST_EVENT_UID, ({ strapi }) => ({
 
-                const events = await strapi.db
-                    .query("api::test-event.test-event")
-                    .findMany({
-                        select: ["date"],
-                        where: { locale },
-                    });
+    async find(ctx) {
+        return super.find(ctx);
+    },
 
-                const years = Array.from(
-                    new Set(
-                        events
-                            .map(ev => ev.date)
-                            .filter(Boolean)
-                            .map(date => new Date(date).getFullYear())
-                    )
-                ).sort((a, b) => b - a);
+    async getYears(ctx) {
+        const result = await strapi.entityService.findMany(TEST_EVENT_UID, {
+            fields: ["date"],
+            pagination: { pageSize: 2000 },
+        });
 
-                ctx.body = { years };
-            } catch (err) {
-                console.error("❌ getYears ERROR:", err);
-                ctx.throw(500, "Failed to load years");
-            }
-        },
+        const events = Array.isArray(result) ? result : [result];
 
-        // --------------------------
-        // GET MONTHS (TRANSLATION AWARE)
-        // --------------------------
-        async getMonths(ctx) {
-            try {
-                const year = Number(ctx.query.year);
-                const locale = ctx.query.locale || "en";
+        const years = [...new Set(
+            events
+                .filter(e => e?.date)
+                .map(e => new Date(e.date).getFullYear())
+        )].sort((a, b) => a - b);
 
-                if (!year) {
-                    return ctx.badRequest("Missing year param");
-                }
+        ctx.body = { years };
+    },
 
-                const events = await strapi.db
-                    .query("api::test-event.test-event")
-                    .findMany({
-                        select: ["date"],
-                        where: {
-                            locale,
-                            date: {
-                                $gte: `${year}-01-01T00:00:00.000Z`,
-                                $lte: `${year}-12-31T23:59:59.999Z`,
-                            },
-                        },
-                    });
+    async getMonths(ctx) {
+        const { year } = ctx.params;
+        if (!year) return (ctx.body = { months: [] });
 
-                const months = Array.from(
-                    new Set(
-                        events
-                            .map(ev => ev.date)
-                            .filter(Boolean)
-                            .map(d => new Date(d).getUTCMonth() + 1)
-                    )
-                ).sort((a, b) => a - b);
+        const result = await strapi.entityService.findMany(TEST_EVENT_UID, {
+            filters: {
+                date: {
+                    $gte: `${year}-01-01`,
+                    $lte: `${year}-12-31`,
+                },
+            },
+            fields: ["date"],
+            pagination: { pageSize: 500 },
+        });
 
-                ctx.body = { months };
-            } catch (err) {
-                console.error("❌ getMonths ERROR:", err);
-                ctx.throw(500, "Failed to load months");
-            }
-        },
+        const events = Array.isArray(result) ? result : [result];
 
-        // --------------------------
-        // GET UPCOMING YEARS (TRANSLATION AWARE)
-        // --------------------------
-        async upcomingYears(ctx) {
-            try {
-                const locale = ctx.query.locale || "en";
-                const nowIso = new Date().toISOString();
+        const months = [...new Set(
+            events
+                .filter(e => e?.date)
+                .map(e => new Date(e.date).getMonth() + 1)
+        )].sort((a, b) => a - b);
 
-                const events = await strapi.entityService.findMany(
-                    "api::test-event.test-event",
-                    {
-                        filters: {
-                            locale,
-                            date: { $gte: nowIso },
-                        },
-                        fields: ["date"],
-                        limit: 9999,
-                    }
-                );
+        ctx.body = { months };
+    },
 
-                const years = Array.from(
-                    new Set(events.map(e => new Date(e.date).getFullYear()))
-                ).sort((a, b) => a - b);
+    async upcomingYears(ctx) {
+        const now = new Date().toISOString();
 
-                ctx.body = { years };
-            } catch (err) {
-                console.error("❌ upcomingYears ERROR:", err);
-                ctx.throw(500, "Failed to load upcoming years");
-            }
-        },
+        const result = await strapi.entityService.findMany(TEST_EVENT_UID, {
+            filters: {
+                date: { $gt: now },
+            },
+            fields: ["date"],
+            pagination: { pageSize: 2000 },
+        });
 
-        // ----------------------------------------------------
-        // 🔥 FIX: GET EVENTS BY MONTH (TRANSLATION-AWARE)
-        // ----------------------------------------------------
-        async byMonth(ctx) {
-            try {
-                const year = Number(ctx.query.year);
-                const month = Number(ctx.query.month);
-                const locale = ctx.query.locale || "en";
+        const events = Array.isArray(result) ? result : [result];
 
-                if (!year || !month) {
-                    return ctx.badRequest("Missing year or month");
-                }
+        const years = [...new Set(
+            events
+                .filter(e => e?.date)
+                .map(e => new Date(e.date).getFullYear())
+        )].sort((a, b) => a - b);
 
-                const start = new Date(Date.UTC(year, month - 1, 1)).toISOString();
-                const end = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999)).toISOString();
+        ctx.body = { years };
+    },
 
-                const events = await strapi.entityService.findMany(
-                    "api::test-event.test-event",
-                    {
-                        filters: {
-                            locale, // ⭐ FILTER BY LOCALE FIRST (THE FIX)
-                            date: {
-                                $gte: start,
-                                $lte: end
-                            }
-                        },
-                        populate: {
-                            images: {
-                                fields: ["url", "alternativeText", "formats", "name"]
-                            }
-                        },
-                        limit: 9999,
-                        sort: { date: "desc" }
-                    }
-                );
 
-                ctx.body = events;
-
-            } catch (err) {
-                console.error("❌ byMonth ERROR:", err);
-                ctx.throw(500, "Failed to load events for this month");
-            }
-        }
-
-    })
-);
+}));
