@@ -1,0 +1,32 @@
+# Node dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Strapi build
+build/
+dist/
+.cache/
+
+# Environment files
+.env
+.env.*
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Strapi admin build
+admin/.cache/
+admin/build/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
