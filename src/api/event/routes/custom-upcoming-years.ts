@@ -2,8 +2,8 @@ export default {
     routes: [
         {
             method: "GET",
-            path: "/test-events/upcoming-years",
-            handler: "test-event.upcomingYears",
+            path: "/events/upcoming-years",
+            handler: "event.upcomingYears",
             config: {
                 auth: false
             }
